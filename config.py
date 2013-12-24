@@ -1,6 +1,6 @@
-IS_YELLOW = False
+IS_YELLOW = True
 ODDISH_ROUTE = False
-RAT_ROUTE = True
+RAT_ROUTE = False
 
 ENCOUNTER_RATE = 0x19
 # Cost in steps of an encounter

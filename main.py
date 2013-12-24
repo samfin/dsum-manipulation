@@ -91,7 +91,8 @@ class Maximizer(object):
         boundary_p = 0
         for s in range(steps_left + 1):
             # Assume that after n steps, we know nothing about distribution and take every step in the grass
-            boundary_p = p_encounter * self.probability(self.base_distribution, s - n - 1 - ENCOUNTER_TIME) + (1 - p_encounter) * boundary_p
+            if s > n:
+                boundary_p = p_encounter * self.probability(self.base_distribution, s - n - 1 - ENCOUNTER_TIME) + (1 - p_encounter) * boundary_p
             self.probabilities[s] = [0] * 10
             strats = []
             for i in range(10):
@@ -142,9 +143,9 @@ def print_array(arr):
     s = ', '.join(s)
     print '[%s]' % s
 
-def test():
+def test(seconds):
     maximizer = Maximizer(100, DESIRED_SLOTS)
-    strats, p = maximizer.maximize(int(60 * STEP_SPEED))
+    strats, p = maximizer.maximize(int(seconds * STEP_SPEED))
     strats = strats[-1]
     for i in range(10):
         print ENCOUNTER_NAMES[i]
@@ -160,6 +161,11 @@ def main():
         print ''
 
 if __name__ == '__main__':
+    import sys
     import colorama
     colorama.init()
-    main()
+
+    if len(sys.argv) > 1:
+        test(int(sys.argv[1]))
+    else:
+        main()

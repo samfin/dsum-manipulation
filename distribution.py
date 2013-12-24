@@ -101,5 +101,4 @@ class Calculator(object):
             out[i] = sum(dist[ENCOUNTER_SLOTS[i] + 1 : ENCOUNTER_SLOTS[i+1] + 1])
 
         self.data[args] = out
-
         return out
