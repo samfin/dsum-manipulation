@@ -14,67 +14,92 @@ def distribution_normalize(x):
     for i in range(len(x)):
         x[i] /= s
 
-def distribution_constant():
-    y = numpy.zeros(256)
-    for i in range(ENCOUNTER_RATE):
-        y[i] = 1.0 / ENCOUNTER_RATE
+class Calculator(object):
+    def __init__(self, prior = None):
+        if prior is None:
+            prior = numpy.ones(256)
+        self.prior = prior
+        self.dsum_data = {}
+        self.encounter_data = {}
+        self.step_data = {}
+        self.data = {}
 
-    z = numpy.zeros(256)
-    MAX_DEV = int(6 * DSUM_STDEV)
-    for i in range(-MAX_DEV, MAX_DEV + 1):
-        a = (i + 256) % 256
-        z[a] += norm.cdf((i + 0.5) / DSUM_STDEV) - norm.cdf((i - 0.5) / DSUM_STDEV)
-    distribution_normalize(z)
+        # Distribution to convert dsum distribution to encounter distribution
+        self.conversion_factor = numpy.zeros(256)
+        for i in range(ENCOUNTER_RATE):
+            self.conversion_factor[(256 - i) % 256] = 1.0 / ENCOUNTER_RATE
 
-    w = numpy.zeros(256)
-    for i in range(ENCOUNTER_RATE):
-        w[(256 - i) % 256] = 1.0 / ENCOUNTER_RATE
+    def reset_memoized_data(self):
+        self.dsum_data = {}
+        self.encounter_data = {}
+        self.step_data = {}
+        self.data = {}
 
-    return reduce(distribution_add, [y, z, w])
+    def update_prior(self, encounter, n_steps):
+        self.prior = self.dsum_distribution(encounter, n_steps)
+        self.reset_memoized_data()
 
-distribution_constant = distribution_constant()
+    def encounter_term(self, encounter):
+        # Get initial dsum distribution based on encounter slot
+        if encounter in self.encounter_data:
+            return self.encounter_data[encounter]
 
-def distribution_base(n_steps):
-    if n_steps in distribution_base.data:
-        return distribution_base.data[n_steps]
+        x = numpy.zeros(256)
+        for i in range(ENCOUNTER_RATE):
+            x[i] = 1.0 / ENCOUNTER_RATE
 
-    x = numpy.zeros(256)
-    t = (DSUM_PER_STEP * n_steps + DSUM_DIFF) % 256
-    if t < 0:
-        t += 256
-    u = int(t)
-    x[u] = 1 - (t - u)
-    x[(u+1) % 256] = t - u
+        y = numpy.zeros(256)
+        for i in range(ENCOUNTER_SLOTS[encounter] + 1, ENCOUNTER_SLOTS[encounter+1] + 1):
+            y[i] = 1
 
-    y = numpy.zeros(256)
-    stdev = math.sqrt(n_steps) * DSUM_PER_STEP_STDEV
-    if stdev < 1e-4:
-        y[0] = 1
-    else:
-        MAX_DEV = int(4 * stdev)
-        for i in range(-MAX_DEV, MAX_DEV + 1):
+        z = distribution_add(x, y)
+        # z[k] = probability of given encounter slot given that dsum is k
+        # Use Bayes rule to get probability that dsum is k given encounter slot
+        out = z * self.prior
+        distribution_normalize(out)
+
+        self.encounter_data[encounter] = out
+        return out
+
+    def step_term(self, n_steps):
+        # Get dsum change distribution from running away from encounter and taking n_steps steps
+        if n_steps in self.step_data:
+            return self.step_data[n_steps]
+
+        stdev = math.sqrt(n_steps * DSUM_PER_STEP_STDEV * DSUM_PER_STEP_STDEV + DSUM_STDEV * DSUM_STDEV)
+        mean = ((DSUM_PER_STEP * n_steps + DSUM_DIFF) % 256 + 256) % 256
+        out = numpy.zeros(256)
+        MAX_DEV = int(6 * stdev + 1)
+        for i in range(-MAX_DEV + int(mean), MAX_DEV + int(mean)):
             a = (i + 256) % 256
-            y[a] += norm.cdf((i + 0.5) / stdev) - norm.cdf((i - 0.5) / stdev)
-        distribution_normalize(y)
+            out[a] += norm.cdf((i + 0.5 - mean) / stdev) - norm.cdf((i - 0.5 - mean) / stdev)
+        distribution_normalize(out)
 
-    dist = reduce(distribution_add, [x, y, distribution_constant])
-    distribution_base.data[n_steps] = dist
-    return dist
+        self.step_data[n_steps] = out
+        return out
 
-distribution_base.data = {}
+    def dsum_distribution(self, encounter, n_steps):
+        args = (encounter, n_steps)
+        if args in self.dsum_data:
+            return self.dsum_data[args]
 
-def distribution(ind, time):
-    x = distribution_base(time)
+        out = distribution_add(self.encounter_term(encounter), self.step_term(n_steps))
 
-    y = numpy.zeros(256)
-    n = (ENCOUNTER_SLOTS[ind+1] - ENCOUNTER_SLOTS[ind])
-    for i in range(ENCOUNTER_SLOTS[ind] + 1, ENCOUNTER_SLOTS[ind+1] + 1):
-        y[i] = 1.0 / n
+        self.dsum_data[args] = out
+        return out
 
-    dist = distribution_add(x, y)
+    def distribution(self, encounter, n_steps):
+        args = (encounter, n_steps)
+        if args in self.data:
+            return self.data[args]
 
-    out = [0] * 10
-    for i in range(10):
-        out[i] = sum(dist[ENCOUNTER_SLOTS[i] + 1 : ENCOUNTER_SLOTS[i+1] + 1])
+        dist = distribution_add(self.dsum_distribution(encounter, n_steps), self.conversion_factor)
 
-    return out
+        # Convert distribution on encounter byte to distribution on encounter slots
+        out = [0] * 10
+        for i in range(10):
+            out[i] = sum(dist[ENCOUNTER_SLOTS[i] + 1 : ENCOUNTER_SLOTS[i+1] + 1])
+
+        self.data[args] = out
+
+        return out

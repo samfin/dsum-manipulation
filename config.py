@@ -1,5 +1,6 @@
 IS_YELLOW = False
-ODDISH_ROUTE = True
+ODDISH_ROUTE = False
+RAT_ROUTE = True
 
 ENCOUNTER_RATE = 0x19
 # Cost in steps of an encounter
@@ -11,6 +12,7 @@ STEP_SPEED = 59.7 / 16
 DSUM_DIFF = 256 - 112.84
 DSUM_STDEV = 8.655209591
 
+DESIRED_SLOTS = [1,3]
 ENCOUNTER_NAMES = [
     'RATTATA 3',
     'NIDO_M  3',
@@ -24,8 +26,24 @@ ENCOUNTER_NAMES = [
     'NIDO_F  4'
 ]
 
+if RAT_ROUTE:
+    DESIRED_SLOTS = [7]
+    ENCOUNTER_NAMES = [
+        'RATTATA 3',
+        'PIDGEY  3',
+        'PIDGEY  4',
+        'RATTATA 4',
+        'PIDGEY  5',
+        'WEEDLE  3',
+        'RATTATA 2',
+        'RATTATA 5',
+        'WEEDLE  4',
+        'WEEDLE  5'
+    ]
+
 if ODDISH_ROUTE:
     ENCOUNTER_RATE = 0x0f
+    DESIRED_SLOTS = [0,5,6]
     ENCOUNTER_NAMES = [
         'ODDISH 13',
         'PIDGEY 13',
@@ -44,6 +62,7 @@ if IS_YELLOW:
     DSUM_SPEED = (0x4f - 0x0b) / 772.06
     DSUM_DIFF = 256 - 38.28571429
     DSUM_STDEV = 9.05724094
+    DESIRED_SLOTS = [6]
     ENCOUNTER_NAMES = [
         'RATTATA 3',
         'PIDGEY  3',

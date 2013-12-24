@@ -1,5 +1,5 @@
 import copy
-from distribution import distribution
+import distribution
 from config import *
 
 # Optimize for minimal number time in expectation
@@ -7,11 +7,12 @@ class Optimizer(object):
     def __init__(self, n, desired):
         self.n = n
         self.INF = 10000
+        self.calculator = distribution.Calculator()
         self.distribution = {}
         for slot in range(10):
             self.distribution[slot] = {}
             for t in range(n):
-                self.distribution[slot][t] = distribution(slot, t)
+                self.distribution[slot][t] = self.calculator.distribution(slot, t)
         self.costs = [self.INF] * 10
         self.desired = desired
         for x in self.desired:
@@ -62,11 +63,12 @@ class Optimizer(object):
 class Maximizer(object):
     def __init__(self, n, desired):
         self.n = n
+        self.calculator = distribution.Calculator()
         self.distribution = {}
         for slot in range(10):
             self.distribution[slot] = {}
             for t in range(n):
-                self.distribution[slot][t] = distribution(slot, t)
+                self.distribution[slot][t] = self.calculator.distribution(slot, t)
         self.desired = desired
 
         self.p_encounter = ENCOUNTER_RATE / 256.0
@@ -141,12 +143,8 @@ def print_array(arr):
     print '[%s]' % s
 
 def test():
-    if IS_YELLOW:
-        maximizer = Maximizer(100, [6])
-        strats, p = maximizer.maximize(int(60 * STEP_SPEED))
-    else:
-        maximizer = Maximizer(100, [1,3])
-        strats, p = maximizer.maximize(int(30 * STEP_SPEED))
+    maximizer = Maximizer(100, DESIRED_SLOTS)
+    strats, p = maximizer.maximize(int(60 * STEP_SPEED))
     strats = strats[-1]
     for i in range(10):
         print ENCOUNTER_NAMES[i]
@@ -154,12 +152,7 @@ def test():
         print ''
 
 def main():
-    if IS_YELLOW:
-        optimizer = Optimizer(100, [6])
-    elif not ODDISH_ROUTE:
-        optimizer = Optimizer(100, [1,3])
-    else:
-        optimizer = Optimizer(100, [0,5,6])
+    optimizer = Optimizer(100, DESIRED_SLOTS)
     strats, costs = optimizer.optimize()
     for i in range(10):
         print ENCOUNTER_NAMES[i]
