@@ -9,10 +9,29 @@ def distribution_add(x, y):
         z[i-256] += z[i]
     return z[0:256]
 
+def distribution_multiply(x, n):
+    out = numpy.zeros(256)
+    out[0] = 1
+
+    while n > 0:
+        if n % 2:
+            out = distribution_add(out, x)
+        x = distribution_add(x, x)
+        n /= 2
+
+    return out
+
 def distribution_normalize(x):
     s = sum(x)
     for i in range(len(x)):
         x[i] /= s
+
+# Convert dictionary of probabilities to numpy distribution
+def distirbution_convert(d):
+    dist = numpy.zeros(256)
+    for x in d:
+        dist[x] = d[x]
+    return dist
 
 class Calculator(object):
     def __init__(self, prior = None):
@@ -21,18 +40,29 @@ class Calculator(object):
         self.prior = prior
         self.dsum_data = {}
         self.encounter_data = {}
-        self.step_data = {}
         self.data = {}
+        self.step_data = {}
 
         # Distribution to convert dsum distribution to encounter distribution
         self.conversion_factor = numpy.zeros(256)
         for i in range(ENCOUNTER_RATE):
             self.conversion_factor[(256 - i) % 256] = 1.0 / ENCOUNTER_RATE
 
+        # Get per-step distribution
+        frame_dist = distirbution_convert(DSUM_PER_FRAME)
+        self.step_data[1] = distribution_multiply(frame_dist, 16)
+
+        # Get battle distribution
+        self.battle_constant = numpy.zeros(256)
+        MAX_DEV = int(6 * DSUM_STDEV + 1)
+        for i in range(-MAX_DEV + int(DSUM_DIFF), MAX_DEV + int(DSUM_DIFF)):
+            a = (i + 256) % 256
+            self.battle_constant[a] += norm.cdf((i + 0.5 - DSUM_DIFF) / DSUM_STDEV) - norm.cdf((i - 0.5 - DSUM_DIFF) / DSUM_STDEV)
+        distribution_normalize(self.battle_constant)
+
     def reset_memoized_data(self):
-        self.dsum_data = {}
         self.encounter_data = {}
-        self.step_data = {}
+        self.dsum_data = {}
         self.data = {}
 
     def update_prior(self, encounter, n_steps):
@@ -44,6 +74,7 @@ class Calculator(object):
         if encounter in self.encounter_data:
             return self.encounter_data[encounter]
 
+        # First get dsum distribution immediately before the encounter
         x = numpy.zeros(256)
         for i in range(ENCOUNTER_RATE):
             x[i] = 1.0 / ENCOUNTER_RATE
@@ -58,22 +89,23 @@ class Calculator(object):
         out = z * self.prior
         distribution_normalize(out)
 
+
+        # Add in the cost of running from the encounter
+        out = distribution_add(out, self.battle_constant)
+
         self.encounter_data[encounter] = out
         return out
 
     def step_term(self, n_steps):
-        # Get dsum change distribution from running away from encounter and taking n_steps steps
+        n_steps += 3
+        # Get dsum change distribution from taking n_steps steps
         if n_steps in self.step_data:
             return self.step_data[n_steps]
 
-        stdev = math.sqrt(n_steps * DSUM_PER_STEP_STDEV * DSUM_PER_STEP_STDEV + DSUM_STDEV * DSUM_STDEV)
-        mean = ((DSUM_PER_STEP * n_steps + DSUM_DIFF) % 256 + 256) % 256
-        out = numpy.zeros(256)
-        MAX_DEV = int(6 * stdev + 1)
-        for i in range(-MAX_DEV + int(mean), MAX_DEV + int(mean)):
-            a = (i + 256) % 256
-            out[a] += norm.cdf((i + 0.5 - mean) / stdev) - norm.cdf((i - 0.5 - mean) / stdev)
-        distribution_normalize(out)
+        if n_steps - 1 in self.step_data:
+            out = distribution_add(self.step_data[n_steps - 1], self.step_data[1])
+        else:
+            out = distribution_multiply(self.step_data[1], n_steps)
 
         self.step_data[n_steps] = out
         return out
