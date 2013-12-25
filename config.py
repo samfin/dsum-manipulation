@@ -1,4 +1,4 @@
-IS_YELLOW = False
+IS_YELLOW = True
 ODDISH_ROUTE = False
 RAT_ROUTE = False
 

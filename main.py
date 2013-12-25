@@ -1,5 +1,6 @@
 import copy
 import distribution
+import numpy
 from config import *
 
 # Optimize for minimal number time in expectation
@@ -20,6 +21,44 @@ class Optimizer(object):
 
         self.p_encounter = ENCOUNTER_RATE / 256.0
         self.base_distribution = [(ENCOUNTER_SLOTS[i+1] - ENCOUNTER_SLOTS[i]) / 256.0 for i in range(10)]
+
+    def eval(self, strats):
+        costs = []
+        coefficients = []
+        p_encounter = self.p_encounter
+        if len(strats) != 10:
+            raise Exception("Need to provide strats for all 10 encounter slots")
+        for i in range(10):
+            x = [0] * 10
+
+            cost = 1 / p_encounter
+            for j in range(10):
+                if j in self.desired:
+                    continue
+                cost += self.base_distribution[j] * ENCOUNTER_TIME
+                x[j] += self.base_distribution[j]
+
+            strat = strats[i]
+            n = len(strat)
+            if n > self.n:
+                raise Exception("Strat %d with %d elements is too long, preprocessing only goes up to %d." % (i, n, self.n))
+            for k in reversed(range(n)):
+                if strat[k] == 0:
+                    cost += 1
+                    continue
+                dist = self.distribution[i][k]
+                s = sum(ENCOUNTER_TIME * dist[j] for j in range(10) if j not in self.desired)
+                cost = 1 + p_encounter * s + (1 - p_encounter) * cost
+                for j in range(10):
+                    if j in self.desired:
+                        continue
+                    x[j] = p_encounter * dist[j] + (1 - p_encounter) * x[j]
+            costs.append(cost)
+            coefficients.append(x)
+
+        x = numpy.linalg.inv(numpy.identity(10) - numpy.matrix(coefficients))
+        out = [sum(x.item((i, j)) * costs[j] for j in range(10)) for i in range(10)]
+        return out
 
     # Expected cost of an encounter from given distribution
     def expected_cost(self, dist):
