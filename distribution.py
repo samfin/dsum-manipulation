@@ -55,12 +55,20 @@ class Calculator(object):
         self.step_data[1] = distirbution_convert(DSUM_PER_STEP)
 
         # Get battle distribution
-        self.battle_constant = numpy.zeros(256)
-        MAX_DEV = int(6 * DSUM_STDEV + 1)
-        for i in range(-MAX_DEV + int(DSUM_DIFF), MAX_DEV + int(DSUM_DIFF)):
-            a = (i + 256) % 256
-            self.battle_constant[a] += norm.cdf((i + 0.5 - DSUM_DIFF) / DSUM_STDEV) - norm.cdf((i - 0.5 - DSUM_DIFF) / DSUM_STDEV)
-        distribution_normalize(self.battle_constant)
+        self.battle_constant = []
+        for i in range(10):
+            x = numpy.zeros(256)
+            name = ENCOUNTER_NAMES[i].split(' ')[0]
+            if name in BATTLE_DIFFS:
+                mean, stdev = BATTLE_DIFFS[name]
+            else:
+                mean, stdev = DSUM_DIFF, DSUM_STDEV
+            MAX_DEV = int(6 * stdev + 1)
+            for i in range(-MAX_DEV + int(mean), MAX_DEV + int(mean)):
+                a = (i + 256) % 256
+                x[a] += norm.cdf((i + 0.5 - mean) / stdev) - norm.cdf((i - 0.5 - mean) / stdev)
+            distribution_normalize(x)
+            self.battle_constant.append(x)
 
     def reset_memoized_data(self):
         self.encounter_data = {}
@@ -69,7 +77,6 @@ class Calculator(object):
 
     def update_prior(self, encounter, n_steps):
         self.prior = self.dsum_distribution(encounter, n_steps)
-        print self.distribution(encounter, n_steps)
         self.reset_memoized_data()
 
     def encounter_term(self, encounter):
@@ -94,7 +101,7 @@ class Calculator(object):
 
 
         # Add in the cost of running from the encounter
-        out = distribution_add(out, self.battle_constant)
+        out = distribution_add(out, self.battle_constant[encounter])
 
         self.encounter_data[encounter] = out
         return out
