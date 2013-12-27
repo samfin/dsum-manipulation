@@ -6,6 +6,7 @@ from config import *
 # Optimize for minimal number time in expectation
 class Optimizer(object):
     def __init__(self, n, desired):
+        n -= 2
         self.n = n
         self.INF = 10000
         self.calculator = distribution.Calculator()
@@ -101,6 +102,7 @@ class Optimizer(object):
 # Optimize for maximum probability within a time threshold
 class Maximizer(object):
     def __init__(self, n, desired):
+        n -= 2
         self.n = n
         self.calculator = distribution.Calculator()
         self.distribution = {}
@@ -182,9 +184,10 @@ def print_array(arr):
     s = ', '.join(s)
     print '[%s]' % s
 
-def test(seconds):
+def test(steps):
+    steps -= 2
     maximizer = Maximizer(100, DESIRED_SLOTS)
-    strats, p = maximizer.maximize(int(seconds * STEP_SPEED))
+    strats, p = maximizer.maximize(steps)
     strats = strats[-1]
     for i in range(10):
         print ENCOUNTER_NAMES[i]

@@ -30,7 +30,10 @@ def distribution_normalize(x):
 def distirbution_convert(d):
     dist = numpy.zeros(256)
     for x in d:
-        dist[x] = d[x]
+        a = x
+        if a < 0:
+            a += 256
+        dist[a] = d[x]
     return dist
 
 class Calculator(object):
@@ -49,8 +52,7 @@ class Calculator(object):
             self.conversion_factor[(256 - i) % 256] = 1.0 / ENCOUNTER_RATE
 
         # Get per-step distribution
-        frame_dist = distirbution_convert(DSUM_PER_FRAME)
-        self.step_data[1] = distribution_multiply(frame_dist, 16)
+        self.step_data[1] = distirbution_convert(DSUM_PER_STEP)
 
         # Get battle distribution
         self.battle_constant = numpy.zeros(256)
@@ -67,6 +69,7 @@ class Calculator(object):
 
     def update_prior(self, encounter, n_steps):
         self.prior = self.dsum_distribution(encounter, n_steps)
+        print self.distribution(encounter, n_steps)
         self.reset_memoized_data()
 
     def encounter_term(self, encounter):
