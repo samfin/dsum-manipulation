@@ -14,7 +14,7 @@ class Optimizer(object):
         for slot in range(10):
             self.distribution[slot] = {}
             for t in range(n):
-                self.distribution[slot][t] = self.calculator.distribution(slot, t)
+                self.distribution[slot][t] = self.calculator.distribution(slot, t+3)
         self.costs = [self.INF] * 10
         self.desired = desired
         for x in self.desired:

@@ -116,7 +116,6 @@ class Calculator(object):
         return out
 
     def step_term(self, n_steps):
-        n_steps += 3
         # Get dsum change distribution from taking n_steps steps
         if n_steps in self.step_data:
             return self.step_data[n_steps]
