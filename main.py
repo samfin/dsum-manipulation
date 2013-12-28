@@ -3,9 +3,6 @@ import distribution
 import numpy
 from config import *
 
-# nid4: got rat4 instead of nid3
-
-
 # Optimize for minimal number time in expectation
 class Optimizer(object):
     def __init__(self, n, desired):
