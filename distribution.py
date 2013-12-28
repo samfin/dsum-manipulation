@@ -36,6 +36,16 @@ def distirbution_convert(d):
         dist[a] = d[x]
     return dist
 
+def distribution_gaussian(mean, stdev):
+    x = numpy.zeros(256)
+    mean = ((mean % 256) + 256) % 256
+    MAX_DEV = int(6 * stdev + 1)
+    for i in range(-MAX_DEV + int(mean), MAX_DEV + int(mean)):
+        a = (i + 256) % 256
+        x[a] += norm.cdf((i + 0.5 - mean) / stdev) - norm.cdf((i - 0.5 - mean) / stdev)
+    distribution_normalize(x)
+    return x
+
 class Calculator(object):
     def __init__(self, prior = None):
         if prior is None:
@@ -52,7 +62,10 @@ class Calculator(object):
             self.conversion_factor[(256 - i) % 256] = 1.0 / ENCOUNTER_RATE
 
         # Get per-step distribution
-        self.step_data[1] = distirbution_convert(DSUM_PER_STEP)
+        if isinstance(DSUM_PER_STEP, dict):
+            self.step_data[1] = distirbution_convert(DSUM_PER_STEP)
+        else:
+            self.step_data[1] = distribution_gaussian(DSUM_PER_STEP, DSUM_PER_STEP_STDEV)
 
         # Get battle distribution
         self.battle_constant = []
@@ -63,11 +76,7 @@ class Calculator(object):
                 mean, stdev = BATTLE_DIFFS[name]
             else:
                 mean, stdev = DSUM_DIFF, DSUM_STDEV
-            MAX_DEV = int(6 * stdev + 1)
-            for i in range(-MAX_DEV + int(mean), MAX_DEV + int(mean)):
-                a = (i + 256) % 256
-                x[a] += norm.cdf((i + 0.5 - mean) / stdev) - norm.cdf((i - 0.5 - mean) / stdev)
-            distribution_normalize(x)
+            x = distribution_gaussian(mean, stdev)
             self.battle_constant.append(x)
 
     def reset_memoized_data(self):
