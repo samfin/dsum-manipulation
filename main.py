@@ -195,7 +195,10 @@ def test(steps):
         print ''
 
 def main():
-    optimizer = Optimizer(100, DESIRED_SLOTS)
+    n = 100
+    if IS_YELLOW:
+        n = 300
+    optimizer = Optimizer(n, DESIRED_SLOTS)
     strats, costs = optimizer.optimize()
     for i in range(10):
         print ENCOUNTER_NAMES[i]

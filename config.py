@@ -1,6 +1,7 @@
 IS_YELLOW = False
 ODDISH_ROUTE = False
-RAT_ROUTE = True
+RAT_ROUTE = False
+ABRA_ROUTE = True
 
 ENCOUNTER_RATE = 0x19
 STEP_SPEED = 59.7 / 17
@@ -17,7 +18,7 @@ BATTLE_DIFFS = {
     'PIDGEY':   (-87.233689757, 9.86946893711),
     'WEEDLE':   (-76.40608555, 8.41922306989),
 }
-DSUM_DIFF = sum(BATTLE_DIFFS[x][0] for x in BATTLE_DIFFS) / len(BATTLE_DIFFS)
+DSUM_DIFF = -75
 DSUM_STDEV = 12
 
 DESIRED_SLOTS = [1,3]
@@ -65,6 +66,22 @@ if ODDISH_ROUTE:
         'PIDGEY 16',
         'MANKEY 14',
         'MANKEY 16'
+    ]
+
+if ABRA_ROUTE:
+    ENCOUNTER_RATE = 0x0f
+    DESIRED_SLOTS = [5,7]
+    ENCOUNTER_NAMES = [
+        'WEEDLE 8',
+        'KAKUNA 9',
+        'PIDGEY 13',
+        'ODDISH 12',
+        'ODDISH 13',
+        'ABRA   12',
+        'ODDISH 14',
+        'ABRA   10',
+        'METAPOD 7',
+        'CATERPIE 8'
     ]
 
 # yellow
