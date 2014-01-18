@@ -197,7 +197,7 @@ def test(steps):
 def main():
     n = 100
     if IS_YELLOW:
-        n = 300
+        n = 150
     optimizer = Optimizer(n, DESIRED_SLOTS)
     strats, costs = optimizer.optimize()
     for i in range(10):
@@ -211,6 +211,5 @@ if __name__ == '__main__':
     colorama.init()
 
     if len(sys.argv) > 1:
-        test(int(sys.argv[1]))
-    else:
-        main()
+        DESIRED_SLOTS = map(int, sys.argv[1].split(','))
+    main()
